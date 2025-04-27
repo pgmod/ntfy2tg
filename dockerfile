@@ -14,8 +14,6 @@ RUN go mod download
 
 # Копируем исходный код приложения и статические файлы
 COPY cmd cmd
-COPY pkg pkg
-COPY internal internal
 
 # Сборка приложения с использованием кэша Go (mount типа cache доступен при использовании BuildKit)
 RUN --mount=type=cache,target=/gocache \
