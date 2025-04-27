@@ -26,6 +26,6 @@ go build -ldflags="-w -s" -o ntfy2tg ./cmd/main/
 FROM bash:4.4.23
 
 # Копируем собранный бинарник и статические файлы из стадии builder
-COPY --from=builder /app/ntfy2tg /app/ntfy2tg
+COPY --from=builder /app/ntfy2tg /ntfy2tg
 
 CMD ["./ntfy2tg"]
