@@ -19,13 +19,13 @@ COPY cmd cmd
 RUN --mount=type=cache,target=/gocache \
 GOCACHE=/gocache \
 GOOS=linux GOARCH=amd64 \
-go build -ldflags="-w -s" -o app ./cmd/main/
+go build -ldflags="-w -s" -o ntfy2tg ./cmd/main/
 
 
 # Stage 2: Final image
 FROM bash:4.4.23
 
 # Копируем собранный бинарник и статические файлы из стадии builder
-COPY --from=builder /app/app /app/app
+COPY --from=builder /app/ntfy2tg /app/ntfy2tg
 
-CMD ["./app"]
+CMD ["./ntfy2tg"]
