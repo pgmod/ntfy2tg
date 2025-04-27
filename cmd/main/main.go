@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -37,7 +38,7 @@ func main() {
 	_ = notify.Send(
 		context.Background(),
 		"Запуск бота",
-		"Бот запущен для тем: "+strings.Join(NTFY_ADDRS, ", "),
+		"Бот запущен для тем: \n"+strings.Join(NTFY_ADDRS, "\n"),
 	)
 
 	wg := sync.WaitGroup{}
@@ -61,6 +62,7 @@ type Message struct {
 }
 
 func listen(addr string) {
+	fmt.Println("Listening to", addr)
 	ws, _, _ := websocket.DefaultDialer.Dial("wss://"+addr+"/ws", nil)
 	for {
 
