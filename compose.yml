@@ -1,0 +1,13 @@
+services:
+  ntfy2tg:
+    container_name: ntfy2tg
+    build:
+      context: .
+    volumes:
+      - ./.env:/.env
+      - go_cache:/gocache
+    restart: always
+
+
+volumes:
+  go_cache:
