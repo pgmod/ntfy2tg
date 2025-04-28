@@ -85,19 +85,19 @@ func listen(addr string) {
 		}
 		if messageType == websocket.TextMessage {
 			if msg.Event == "message" {
-				var pm *models.ParseMode
+				var pm models.ParseMode
 				if msg.ContentType == "text/markdown" {
 					p := models.ParseModeMarkdown
-					pm = &p
+					pm = p
 				} else {
-					pm = nil
+					pm = ""
 				}
 				_, err = tgbot.SendMessage(
 					context.Background(),
 					&bot.SendMessageParams{
 						ChatID:    TG_CHAT_ID,
 						Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + msg.Message,
-						ParseMode: *pm,
+						ParseMode: pm,
 					},
 				)
 				if err != nil {
