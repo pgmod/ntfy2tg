@@ -15,13 +15,13 @@ import (
 )
 
 var tgbot *bot.Bot
-var TG_CHAT_ID int64
+var TG_CHAT_IDs []int64
 
 func main() {
 	envconfig.Load()
 
 	TG_BOT_TOKEN := envconfig.Get("TG_BOT_TOKEN", "")
-	TG_CHAT_ID = envconfig.GetInt64("TG_CHAT_ID", 0)
+	TG_CHAT_IDs = envconfig.GetInt64Slice("TG_CHAT_ID", []int64{})
 	NTFY_ADDRS, err := envconfig.ToList(envconfig.Get("NTFY_ADDRS", ""), ",")
 	if err != nil {
 		log.Fatal(err)
@@ -30,19 +30,21 @@ func main() {
 	if TG_BOT_TOKEN == "" {
 		log.Fatal("TG_BOT_TOKEN is not set")
 	}
-	if TG_CHAT_ID == 0 {
+	if len(TG_CHAT_IDs) == 0 {
 		log.Fatal("TG_CHAT_ID is not set")
 	}
 	tgbot, _ = bot.New(TG_BOT_TOKEN)
 	go tgbot.Start(context.Background())
 
-	tgbot.SendMessage(
-		context.Background(),
-		&bot.SendMessageParams{
-			ChatID: TG_CHAT_ID,
-			Text:   "Бот запущен для тем: \n" + strings.Join(NTFY_ADDRS, "\n"),
-		},
-	)
+	for _, chatID := range TG_CHAT_IDs {
+		tgbot.SendMessage(
+			context.Background(),
+			&bot.SendMessageParams{
+				ChatID: chatID,
+				Text:   "Бот запущен для тем: \n" + strings.Join(NTFY_ADDRS, "\n"),
+			},
+		)
+	}
 
 	wg := sync.WaitGroup{}
 	for _, addr := range NTFY_ADDRS {
@@ -92,16 +94,18 @@ func listen(addr string) {
 				} else {
 					pm = ""
 				}
-				_, err = tgbot.SendMessage(
-					context.Background(),
-					&bot.SendMessageParams{
-						ChatID:    TG_CHAT_ID,
-						Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + msg.Message,
-						ParseMode: pm,
-					},
-				)
-				if err != nil {
-					log.Fatal(err)
+				for _, chatID := range TG_CHAT_IDs {
+					_, err = tgbot.SendMessage(
+						context.Background(),
+						&bot.SendMessageParams{
+							ChatID:    chatID,
+							Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + msg.Message,
+							ParseMode: pm,
+						},
+					)
+					if err != nil {
+						log.Fatal(err)
+					}
 				}
 			}
 		} else if messageType == websocket.CloseMessage {
