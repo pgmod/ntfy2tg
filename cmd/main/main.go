@@ -99,7 +99,7 @@ func listen(addr string) {
 						context.Background(),
 						&bot.SendMessageParams{
 							ChatID:    chatID,
-							Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + msg.Message,
+							Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + escapeMsg(msg.Message),
 							ParseMode: pm,
 						},
 					)
@@ -124,4 +124,18 @@ func tagsToEmoji(tags []string) string {
 	}
 	fmt.Println("Emoji:", result)
 	return result
+}
+
+func escapeMsg(msg string) string {
+	msg = strings.ReplaceAll(msg, "_", "\\_")
+	// msg = strings.ReplaceAll(msg, "*", "\\*")
+	msg = strings.ReplaceAll(msg, "+", "\\+")
+	msg = strings.ReplaceAll(msg, "[", "\\[")
+	msg = strings.ReplaceAll(msg, "]", "\\]")
+	msg = strings.ReplaceAll(msg, "(", "\\(")
+	msg = strings.ReplaceAll(msg, ")", "\\)")
+	msg = strings.ReplaceAll(msg, ".", "\\.")
+	msg = strings.ReplaceAll(msg, "=", "\\=")
+	msg = strings.ReplaceAll(msg, "-", "\\-")
+	return msg
 }
