@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -72,47 +73,66 @@ type Message struct {
 
 func listen(addr string) {
 	fmt.Println("Listening to", addr)
-	ws, _, _ := websocket.DefaultDialer.Dial("wss://"+addr+"/ws", nil)
 	for {
+		ws, err := dialNTFY(addr)
+		if err != nil {
+			log.Printf("[%s] connect failed: %v, retry in 5s", addr, err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
-		messageType, data, err := ws.ReadMessage()
-		if err != nil {
-			log.Fatal(err)
-		}
-		var msg Message
-		fmt.Println(string(data))
-		err = json.Unmarshal(data, &msg)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if messageType == websocket.TextMessage {
-			if msg.Event == "message" {
-				var pm models.ParseMode
-				if msg.ContentType == "text/markdown" {
-					p := models.ParseModeMarkdown
-					pm = p
-				} else {
-					pm = ""
-				}
-				for _, chatID := range TG_CHAT_IDs {
-					_, err = tgbot.SendMessage(
-						context.Background(),
-						&bot.SendMessageParams{
-							ChatID:    chatID,
-							Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + escapeMsg(msg.Message),
-							ParseMode: pm,
-						},
-					)
-					if err != nil {
-						log.Fatal(err)
-					}
+		for {
+			messageType, data, err := ws.ReadMessage()
+			if err != nil {
+				log.Printf("[%s] read error: %v, reconnecting", addr, err)
+				ws.Close()
+				break
+			}
+			if messageType == websocket.CloseMessage {
+				log.Printf("[%s] connection closed, reconnecting", addr)
+				ws.Close()
+				break
+			}
+			if messageType != websocket.TextMessage {
+				continue
+			}
+
+			var msg Message
+			fmt.Println(string(data))
+			if err := json.Unmarshal(data, &msg); err != nil {
+				log.Printf("[%s] unmarshal error: %v", addr, err)
+				continue
+			}
+			if msg.Event != "message" {
+				continue
+			}
+
+			var pm models.ParseMode
+			if msg.ContentType == "text/markdown" {
+				pm = models.ParseModeMarkdown
+			}
+			for _, chatID := range TG_CHAT_IDs {
+				if _, err := tgbot.SendMessage(
+					context.Background(),
+					&bot.SendMessageParams{
+						ChatID:    chatID,
+						Text:      tagsToEmoji(msg.Tags) + " " + msg.Title + "\n" + escapeMsg(msg.Message),
+						ParseMode: pm,
+					},
+				); err != nil {
+					log.Printf("[%s] telegram send error (chat %d): %v", addr, chatID, err)
 				}
 			}
-		} else if messageType == websocket.CloseMessage {
-			log.Println("Connection closed")
-			ws, _, _ = websocket.DefaultDialer.Dial("wss://"+addr+"/ws", nil)
 		}
 	}
+}
+
+func dialNTFY(addr string) (*websocket.Conn, error) {
+	ws, _, err := websocket.DefaultDialer.Dial("wss://"+addr+"/ws", nil)
+	if err != nil {
+		return nil, err
+	}
+	return ws, nil
 }
 
 func tagsToEmoji(tags []string) string {
